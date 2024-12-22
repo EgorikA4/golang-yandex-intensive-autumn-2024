@@ -2,7 +2,6 @@ package rpn
 
 import (
 	"errors"
-	"fmt"
 	"slices"
 	"strings"
 	"strconv"
@@ -107,15 +106,18 @@ func makePostfix(infixTokens []string) ([]string, error) {
 }
 
 func Calc(expression string) (float64, error) {
-	expression = strings.Replace(expression, " ", "", -1)
 	if len(expression) == 0 {
 		return 0, ErrEmptyExpression
 	}
 	if expression[0] == '-' {
 		expression = "0" + expression
 	}
-	expression = strings.Replace(expression, "(-", "(0-)", -1)
-	tokens, err := makePostfix(strings.Split(expression, ""))
+	expression = strings.ReplaceAll(expression, "(-", "(0-")
+	symbols := [...]string{"+", "-", "*", "/", "(", ")"}
+	for _, symbol := range symbols {
+		expression = strings.ReplaceAll(expression, symbol, " " + symbol + " ")
+	}
+	tokens, err := makePostfix(strings.Fields(expression))
 	if err != nil {
 		return 0, err
 	}
@@ -124,14 +126,4 @@ func Calc(expression string) (float64, error) {
 		return 0, err
 	}
 	return ans, nil
-}
-
-func main() {
-	expression := "2 + 1 / 2 * 2"
-	num, err := Calc(expression)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(num)
-	}
 }

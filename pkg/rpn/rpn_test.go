@@ -45,6 +45,24 @@ func TestCalc(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name: "positive expression with negative number next to a bracket",
+			expression: "(-2) + (-2) * 2",
+			expectedResult: -6,
+			expectedError: nil,
+		},
+		{
+			name: "positive expression with negative number at the beginning",
+			expression: "-2 + 2 * 2",
+			expectedResult: 2,
+			expectedError: nil,
+		},
+		{
+			name: "positie expression with float numbers",
+			expression: "2.2 + 2.2",
+			expectedResult: 4.4,
+			expectedError: nil,
+		},
+		{
 			name: "negative expression with ErrUnknownSymbol",
 			expression: "2+2+?",
 			expectedResult: 0,
