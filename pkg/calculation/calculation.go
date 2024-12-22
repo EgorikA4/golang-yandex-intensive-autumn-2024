@@ -1,20 +1,9 @@
-package rpn
+package calculation
 
 import (
-	"errors"
 	"slices"
-	"strings"
 	"strconv"
-)
-
-var (
-	ErrUnknownSymbol = errors.New("unknown symbol")
-	ErrDivisionByZero = errors.New("division by zero")
-	ErrEmptyExpression = errors.New("empty expression")
-	ErrMissingNum = errors.New("missing number")
-	ErrMissingOperation = errors.New("missing operation")
-	ErrMissingOpenBracket = errors.New("there is no closing bracket corresponding to the opening one")
-	ErrMissingCloseBracket = errors.New("there is no opening parenthesis corresponding to the closing one")
+	"strings"
 )
 
 func evalPostfix(postfixTokens []string) (float64, error) {
@@ -23,20 +12,20 @@ func evalPostfix(postfixTokens []string) (float64, error) {
 		if parsedNum, err := strconv.ParseFloat(token, 64); err == nil {
 			stack = append(stack, parsedNum)
 		} else {
-			num2 := stack[len(stack) - 1]
-			num1 := stack[len(stack) - 2]
-			stack = stack[:len(stack) - 2]
+			num2 := stack[len(stack)-1]
+			num1 := stack[len(stack)-2]
+			stack = stack[:len(stack)-2]
 			if token == "+" {
-				stack = append(stack, num1 + num2)
+				stack = append(stack, num1+num2)
 			} else if token == "-" {
-				stack = append(stack, num1 - num2)
+				stack = append(stack, num1-num2)
 			} else if token == "*" {
-				stack = append(stack, num1 * num2)
+				stack = append(stack, num1*num2)
 			} else {
 				if num2 == 0 {
 					return 0, ErrDivisionByZero
 				}
-				stack = append(stack, num1 / num2)
+				stack = append(stack, num1/num2)
 			}
 		}
 	}
@@ -59,9 +48,9 @@ func makePostfix(infixTokens []string) ([]string, error) {
 		if slices.Contains(operations, token) && prevType != "num" {
 			return nil, ErrMissingNum
 		} else if slices.Contains(operations, token) {
-			for len(stack) > 0 && slices.Contains(operations, stack[len(stack) - 1]) && operations_priority[token] <= operations_priority[stack[len(stack) - 1]] {
-				postfixTokens = append(postfixTokens, stack[len(stack) - 1])
-				stack = stack[:len(stack) - 1]
+			for len(stack) > 0 && slices.Contains(operations, stack[len(stack)-1]) && operations_priority[token] <= operations_priority[stack[len(stack)-1]] {
+				postfixTokens = append(postfixTokens, stack[len(stack)-1])
+				stack = stack[:len(stack)-1]
 			}
 			stack = append(stack, token)
 			prevType = "op"
@@ -79,14 +68,14 @@ func makePostfix(infixTokens []string) ([]string, error) {
 				stack = append(stack, token)
 				prevType = "bracket"
 			} else {
-				for len(stack) > 0 && stack[len(stack) - 1] != "(" {
-					postfixTokens = append(postfixTokens, stack[len(stack) - 1])
-					stack = stack[:len(stack) - 1]
+				for len(stack) > 0 && stack[len(stack)-1] != "(" {
+					postfixTokens = append(postfixTokens, stack[len(stack)-1])
+					stack = stack[:len(stack)-1]
 				}
 				if len(stack) == 0 {
 					return nil, ErrMissingOpenBracket
 				}
-				stack = stack[:len(stack) - 1]
+				stack = stack[:len(stack)-1]
 			}
 		} else {
 			return nil, ErrUnknownSymbol
@@ -96,11 +85,11 @@ func makePostfix(infixTokens []string) ([]string, error) {
 		return nil, ErrMissingNum
 	}
 	for len(stack) > 0 {
-		if stack[len(stack) - 1] == "(" {
+		if stack[len(stack)-1] == "(" {
 			return nil, ErrMissingCloseBracket
 		}
-		postfixTokens = append(postfixTokens, stack[len(stack) - 1])
-		stack = stack[:len(stack) - 1]
+		postfixTokens = append(postfixTokens, stack[len(stack)-1])
+		stack = stack[:len(stack)-1]
 	}
 	return postfixTokens, nil
 }
@@ -115,7 +104,7 @@ func Calc(expression string) (float64, error) {
 	expression = strings.ReplaceAll(expression, "(-", "(0-")
 	symbols := [...]string{"+", "-", "*", "/", "(", ")"}
 	for _, symbol := range symbols {
-		expression = strings.ReplaceAll(expression, symbol, " " + symbol + " ")
+		expression = strings.ReplaceAll(expression, symbol, " "+symbol+" ")
 	}
 	tokens, err := makePostfix(strings.Fields(expression))
 	if err != nil {
