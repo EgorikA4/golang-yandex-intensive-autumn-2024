@@ -4,36 +4,12 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/EgorikA4/golang-yandex-intensive-autumn-2024/internal/consts"
+	"github.com/EgorikA4/golang-yandex-intensive-autumn-2024/internal/shared/utils"
 )
 
-func evalPostfix(postfixTokens []string) (float64, error) {
-	var stack []float64
-	for _, token := range postfixTokens {
-		if parsedNum, err := strconv.ParseFloat(token, 64); err == nil {
-			stack = append(stack, parsedNum)
-		} else {
-			num2 := stack[len(stack)-1]
-			num1 := stack[len(stack)-2]
-			stack = stack[:len(stack)-2]
-			if token == "+" {
-				stack = append(stack, num1+num2)
-			} else if token == "-" {
-				stack = append(stack, num1-num2)
-			} else if token == "*" {
-				stack = append(stack, num1*num2)
-			} else {
-				if num2 == 0 {
-					return 0, ErrDivisionByZero
-				}
-				stack = append(stack, num1/num2)
-			}
-		}
-	}
-	return stack[0], nil
-}
-
 func makePostfix(infixTokens []string) ([]string, error) {
-	operations := []string{"+", "-", "*", "/"}
 	operations_priority := map[string]int{
 		"+": 0,
 		"-": 0,
@@ -45,10 +21,10 @@ func makePostfix(infixTokens []string) ([]string, error) {
 	prevType := "op"
 
 	for _, token := range infixTokens {
-		if slices.Contains(operations, token) && prevType != "num" {
-			return nil, ErrMissingNum
-		} else if slices.Contains(operations, token) {
-			for len(stack) > 0 && slices.Contains(operations, stack[len(stack)-1]) && operations_priority[token] <= operations_priority[stack[len(stack)-1]] {
+		if utils.IsOperation(token) && prevType != "num" {
+			return nil, consts.ErrMissingNum
+		} else if utils.IsOperation(token) {
+			for len(stack) > 0 && utils.IsOperation(stack[len(stack)-1]) && operations_priority[token] <= operations_priority[stack[len(stack)-1]] {
 				postfixTokens = append(postfixTokens, stack[len(stack)-1])
 				stack = stack[:len(stack)-1]
 			}
@@ -56,14 +32,14 @@ func makePostfix(infixTokens []string) ([]string, error) {
 			prevType = "op"
 		} else if _, err := strconv.ParseFloat(token, 64); err == nil {
 			if prevType == "num" {
-				return nil, ErrMissingOperation
+				return nil, consts.ErrMissingOperation
 			}
 			postfixTokens = append(postfixTokens, token)
 			prevType = "num"
 		} else if slices.Contains(brackets, token) {
 			if token == "(" {
 				if prevType == "num" {
-					return nil, ErrMissingOperation
+					return nil, consts.ErrMissingOperation
 				}
 				stack = append(stack, token)
 				prevType = "bracket"
@@ -73,20 +49,20 @@ func makePostfix(infixTokens []string) ([]string, error) {
 					stack = stack[:len(stack)-1]
 				}
 				if len(stack) == 0 {
-					return nil, ErrMissingOpenBracket
+					return nil, consts.ErrMissingOpenBracket
 				}
 				stack = stack[:len(stack)-1]
 			}
 		} else {
-			return nil, ErrUnknownSymbol
+			return nil, consts.ErrUnknownSymbol
 		}
 	}
 	if prevType != "num" {
-		return nil, ErrMissingNum
+		return nil, consts.ErrMissingNum
 	}
 	for len(stack) > 0 {
 		if stack[len(stack)-1] == "(" {
-			return nil, ErrMissingCloseBracket
+			return nil, consts.ErrMissingCloseBracket
 		}
 		postfixTokens = append(postfixTokens, stack[len(stack)-1])
 		stack = stack[:len(stack)-1]
@@ -94,9 +70,9 @@ func makePostfix(infixTokens []string) ([]string, error) {
 	return postfixTokens, nil
 }
 
-func Calc(expression string) (float64, error) {
+func Tokenize(expression string) ([]string, error) {
 	if len(expression) == 0 {
-		return 0, ErrEmptyExpression
+		return nil, consts.ErrEmptyExpression
 	}
 	if expression[0] == '-' {
 		expression = "0" + expression
@@ -106,13 +82,10 @@ func Calc(expression string) (float64, error) {
 	for _, symbol := range symbols {
 		expression = strings.ReplaceAll(expression, symbol, " "+symbol+" ")
 	}
+
 	tokens, err := makePostfix(strings.Fields(expression))
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	ans, err := evalPostfix(tokens)
-	if err != nil {
-		return 0, err
-	}
-	return ans, nil
+    return tokens, nil
 }

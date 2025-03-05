@@ -1,4 +1,4 @@
-package server
+package consts
 
 const (
 	MethodNotAllowed    = "Method Not Allowed"

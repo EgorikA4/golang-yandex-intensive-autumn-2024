@@ -1,4 +1,4 @@
-package calculation
+package consts
 
 import "errors"
 
@@ -10,4 +10,10 @@ var (
 	ErrMissingOperation    = errors.New("missing operation")
 	ErrMissingOpenBracket  = errors.New("there is no opening parenthesis corresponding to the closing one")
 	ErrMissingCloseBracket = errors.New("there is no closing bracket corresponding to the opening one")
+    ErrEmptyTasks          = errors.New("there are no available tasks")
+    ErrInvalidOperation    = errors.New("operation not found")
+
+    ErrNodeNotFound        = errors.New("node not found")
+
+    ErrQueryExecutionPostgres = "error when executing a query in PostgreSQL"
 )

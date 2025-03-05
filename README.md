@@ -1,8 +1,16 @@
 # Golang Yandex Intensive Autumn 2024
 
 ## Описание проекта
-Проект представляет веб-сервер, на котором можно посчитать арифметическое выражение, состоящее из операций: +, -, *, /.\
+Проект представляет веб-сервер, на котором можно параллельно посчитать арифметическое выражение, состоящее из операций: +, -, *, /.\
 Также поддерживаются скобки для выставления приоритета.
+
+## Принцип работы
+Проект состоит из двух сущностей: Оркестратор и Агент.
+Запрос с арифметическим выражением поступает на Оркестратора, после чего преобразуется в RPN, по которой строится дерево, а также заполняется список задач. Каждая задача представляет собой следующую структуру: операция, аргумент1, аргумент2. Вторая сущность — Агент, постоянно опрашивает Оркестратора на наличие задач. После получения, задача отправляется в пул с воркерами, которые расчитывают результат и делаю POST запрос на Оркестратора. После чего Оркестратор обновляет дерево зависимостей и после обновления корня дерева, записывает в PostgreSQL результат выражения.
+
+В данном проекте используется две базы данных:
+1) Memgraph — графовая БД в оперативной памяти, которая служит для хранения узлов дерева.
+2) PostgreSQL — реляционная БД, служащая для хранения всех выражений пользователя.
 
 ## Варианты использования
 1. Введено валидное выражение:
@@ -15,10 +23,10 @@
     ```
     HTTP/1.1 200 OK
     Content-Type: application/json
-    Date: Sun, 22 Dec 2024 16:09:53 GMT
-    Content-Length: 30
+    Date: Wed, 05 Mar 2025 17:21:08 GMT
+    Content-Length: 46
 
-    {"result":12.000000000000002}
+    {"id":"f2472d01-5b85-40bd-bc6e-a6c3f8bb2a86"}
     ```
 2. Отправление запроса, метод которого отличный от POST:
     ```bash
@@ -28,27 +36,12 @@
     ```
     HTTP/1.1 405 Method Not Allowed
     Content-Type: application/json
-    Date: Sun, 22 Dec 2024 15:48:57 GMT
+    Date: Wed, 05 Mar 2025 17:21:45 GMT
     Content-Length: 31
 
     {"error":"Method Not Allowed"}
     ```
-3. Отправление невалидного сообщения (деление на ноль, пропущена скобка, пропущена операция, неизвестный символ, пропущено число):
-    + Деление на ноль:
-        ```bash
-        curl --location localhost:8080/api/v1/calculate/ \
-        --header 'Content-Type: application/json' \
-        --data '{"expression": "2.3 + 2 / 0"}' -i
-        ```
-        Результат:
-        ```
-        HTTP/1.1 400 Bad Request
-        Content-Type: application/json
-        Date: Sun, 22 Dec 2024 15:53:52 GMT
-        Content-Length: 29
-
-        {"error":"division by zero"}
-        ```
+3. Отправление выражения содержащее синтаксические ошибки (пропущена скобка, пропущена операция, неизвестный символ, пропущено число):
     + Пропущена скобка:
         ```bash
         curl --location localhost:8080/api/v1/calculate/ \
@@ -57,9 +50,9 @@
         ```
         Результат:
         ```bash
-        HTTP/1.1 400 Bad Request
+        HTTP/1.1 422 Unprocessable Entity
         Content-Type: application/json
-        Date: Sun, 22 Dec 2024 15:57:29 GMT
+        Date: Wed, 05 Mar 2025 17:23:00 GMT
         Content-Length: 77
 
         {"error":"there is no opening parenthesis corresponding to the closing one"}
@@ -72,9 +65,9 @@
         ```
         Результат:
         ```bash
-        HTTP/1.1 400 Bad Request
+        HTTP/1.1 422 Unprocessable Entity
         Content-Type: application/json
-        Date: Sun, 22 Dec 2024 15:59:32 GMT
+        Date: Wed, 05 Mar 2025 17:23:35 GMT
         Content-Length: 30
 
         {"error":"missing operation"}
@@ -87,9 +80,9 @@
         ```
         Результат:
         ```bash
-        HTTP/1.1 400 Bad Request
+        HTTP/1.1 422 Unprocessable Entity
         Content-Type: application/json
-        Date: Sun, 22 Dec 2024 16:00:29 GMT
+        Date: Wed, 05 Mar 2025 17:24:03 GMT
         Content-Length: 27
 
         {"error":"unknown symbol"}
@@ -102,40 +95,96 @@
         ```
         Результат:
         ```bash
-        HTTP/1.1 400 Bad Request
+        HTTP/1.1 422 Unprocessable Entity
         Content-Type: application/json
-        Date: Sun, 22 Dec 2024 16:01:24 GMT
+        Date: Wed, 05 Mar 2025 17:24:26 GMT
         Content-Length: 27
 
         {"error":"missing number"}
         ```
-4. В остальных случаях выдается ошибка 500 (Internal Server Error)
+4. Просмотр всех выражений, которые ввел пользователь:
+    ```bash
+    curl --location localhost:8000/api/v1/expressions -i
+    ```
+    Результат:
+    ```bash
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+    Date: Wed, 05 Mar 2025 17:25:47 GMT
+    Content-Length: 97
+
+    {"expressions":[{"id":"f2472d01-5b85-40bd-bc6e-a6c3f8bb2a86","status":"completed","result":12}]}
+    ```
+5. Просмотр выражения, по id:
+    ```bash
+    curl --location localhost:8000/api/v1/expressions/f2472d01-5b85-40bd-bc6e-a6c3f8bb2a86 -i
+    ```
+    Результат:
+    ```bash
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+    Date: Wed, 05 Mar 2025 17:27:35 GMT
+    Content-Length: 79
+
+    {"id":"f2472d01-5b85-40bd-bc6e-a6c3f8bb2a86","status":"completed","result":12}
+    ```
+6. При введение выражения, в котором производится деление на 0, будет статус выражения failed.
 
 ## Структура проекта
 ```bash
-├── cmd
-│   └── main.go
-├── go.mod
-├── internal
-│   └── application
-│       └── application.go
+├── cmd/
+│   ├── agent/
+│   │   └── main.go
+│   └── orchestrator/
+│       └── main.go
+├── config/
+├── internal/
+│   ├── consts/
+│   ├── services/
+│   │   ├── agent/
+│   │   │   ├── listener/
+│   │   │   │   └── listener.go
+│   │   │   ├── logger/
+│   │   │   └── worker/
+│   │   │       ├── pool.go
+│   │   │       └── worker.go
+│   │   └── orchestrator/
+│   │       ├── app/
+│   │       │   └── app.go
+│   │       ├── calculation/
+│   │       │   ├── parser.go
+│   │       │   ├── task_manager.go
+│   │       │   └── tree.go
+│   │       ├── handlers/
+│   │       │   ├── calculation.go
+│   │       │   ├── expression.go
+│   │       │   └── task.go
+│   │       ├── logger/
+│   │       └── storage/
+│   │           ├── memgraph.go
+│   │           └── postgres.go
+│   └── shared/
+│       ├── models/
+│       └── utils/
 ├── pkg
-│   ├── calculation
-│   │   ├── calculation.go
-│   │   ├── calculation_test.go
-│   │   └── errors.go
-│   └── server
-│       ├── consts.go
-│       ├── server.go
-│       └── server_test.go
+│   └── utils
+│       └── config.go
+├── docker-compose.yml
 └── README.md
 ``` 
 
 ## Запуск проекта
+Перед запуском проекта необходимо создать .env файл. Дефолтные настройки есть в .env.example.
+
+1) Запустить БД (можно с флагом -d):
 ```bash
-go run ./cmd
+docker compose up --build
 ```
-Также можно поменять порт, на котором запущен веб-сервер:
+2) Запустить Оркестратора (отдельный терминал)
 ```bash
-PORT=8000 go run ./cmd
+go run ./cmd/orchestrator/main.go
+```
+3) Запустить Агента (отдельный терминал)
+```bash
+go run ./cmd/agent/main.go
 ```
