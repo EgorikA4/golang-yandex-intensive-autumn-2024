@@ -39,7 +39,8 @@ func main() {
     }
     defer postgresDB.Close()
 
-    logger.Info("orchestrator has been started")
+    orchestratorCfg := config.GetOrchestratorConfig()
+    logger.Info("orchestrator has been started", zap.String("port", orchestratorCfg.Port))
 	application := app.New()
 	application.RunServer()
 }

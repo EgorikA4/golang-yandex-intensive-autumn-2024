@@ -27,14 +27,14 @@ func main() {
         return
     }
 
-    orchestratorCfg := config.GetOrchestratorConfig()
     agentCfg := config.GetAgentConfig()
-    url := fmt.Sprintf("http://localhost:%s/internal/task", orchestratorCfg.Port)
+    url := fmt.Sprintf("http://%s:%s/internal/task", agentCfg.OrchestratorHost, agentCfg.OrchestratorPort)
 
     workerPool := worker.NewWorkerPool(agentCfg.NumWorkers)
     taskListener := listener.NewTasksListener(time.Second, workerPool)
 
     logger.Info("agent has been started")
     go taskListener.Send(url)
+    logger.Info("agent is listening", zap.String("url", url))
     taskListener.Listen(url)
 }

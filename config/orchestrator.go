@@ -19,17 +19,10 @@ func LoadOrchestratorConfig() error {
     var err error
     orchestratorOnce.Do(func() {
         orchestratorConfig = &OrchestratorConfig{}
-        orchestratorPort, ok := os.LookupEnv("APP_PORT")
-
-        if !ok {
-            orchestratorConfig.Port = "8000"
+        if _, err := strconv.Atoi(os.Getenv("ORCHESTRATOR_PORT")); err != nil {
             return
         }
-
-        if _, err := strconv.Atoi(orchestratorPort); err != nil {
-            return
-        }
-        orchestratorConfig.Port = orchestratorPort
+        orchestratorConfig.Port = os.Getenv("ORCHESTRATOR_PORT")
     })
     return err
 }

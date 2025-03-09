@@ -10,6 +10,8 @@ import (
 )
 
 type AgentConfig struct {
+    OrchestratorHost string
+    OrchestratorPort string
     RequestsInterval int64
     NumWorkers int
     TimeAddMs int64
@@ -44,6 +46,8 @@ func LoadAgentConfig() error {
             "TIME_MULTIPLICATIONS_MS",
             "TIME_DIVISIONS_MS",
             "COMPUTING_POWER",
+            "ORCHESTRATOR_PORT",
+            "ORCHESTRATOR_HOST",
         }
 
         if err = utils.CheckEnvVars(requiredVars); err != nil {
@@ -84,6 +88,13 @@ func LoadAgentConfig() error {
             return
         }
         agentConfig.NumWorkers = numWorkers
+
+        agentConfig.OrchestratorHost = os.Getenv("ORCHESTRATOR_HOST")
+
+        if _, err = strconv.Atoi(os.Getenv("ORCHESTRATOR_PORT")); err != nil {
+            return
+        }
+        agentConfig.OrchestratorPort = os.Getenv("ORCHESTRATOR_PORT")
 
         if os.Getenv("REQUESTS_INTERVAL_MS") == "" {
             agentConfig.RequestsInterval = 1000

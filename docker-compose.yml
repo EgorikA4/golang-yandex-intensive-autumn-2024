@@ -1,5 +1,5 @@
 services:
-  memgraph:
+  memgraph_db:
     image: memgraph/memgraph
     container_name: memgraph
     ports:
@@ -9,11 +9,17 @@ services:
       MEMGRAPH_USER: memgraph
       MEMGRAPH_PASSWORD: test
 
-  postgresql:
+  memgraph_lab:
+    image: memgraph/lab
+    container_name: lab
+    ports:
+      - "3000:3000"
+
+  postgres_db:
     image: postgres
     container_name: postgres
     ports:
-      - "5555:5432"
+      - "5432:5432"
     environment:
       POSTGRES_PASSWORD: test
       POSTGRES_USER: postgres
@@ -25,15 +31,26 @@ services:
       retries: 60
     restart: always
 
-    # server:
-    #   build:
-    #     dockerfile: Dockerfile
-    #     context: .
-    #   ports:
-    #     - "8000:8000"
-    #   volumes:
-    #     - .env:/app/.env
-    #   depends_on:
-    #     postgresql:
-    #       condition: service_healthy
-    #   stop_signal: SIGINT
+  orchestrator:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    command: ./orchestrator
+    ports:
+      - "${ORCHESTRATOR_PORT}:${ORCHESTRATOR_PORT}"
+    volumes:
+      - .env:/app/.env
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    stop_signal: SIGINT
+
+  agent:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    command: ./agent
+    volumes:
+      - .env:/app/.env
+    stop_signal: SIGINT
+
