@@ -87,5 +87,5 @@ func Tokenize(expression string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-    return tokens, nil
+	return tokens, nil
 }

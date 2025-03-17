@@ -7,20 +7,20 @@ import (
 )
 
 type WorkerPool struct {
-    Tasks chan models.AgentTask
-    Results chan models.AgentResult
+	Tasks   chan models.AgentTask
+	Results chan models.AgentResult
 }
 
 func NewWorkerPool(numWorkers int) *WorkerPool {
-    logger := logger.GetLogger()
-    pool := &WorkerPool{
-        Tasks: make(chan models.AgentTask, numWorkers),
-        Results: make(chan models.AgentResult, numWorkers),
-    }
+	logger := logger.GetLogger()
+	pool := &WorkerPool{
+		Tasks:   make(chan models.AgentTask, numWorkers),
+		Results: make(chan models.AgentResult, numWorkers),
+	}
 
-    for i := 1; i <= numWorkers; i++ {
-        go worker(pool.Tasks, pool.Results)
-        logger.Info("worker has been started", zap.Int("id", i))
-    }
-    return pool
+	for i := 1; i <= numWorkers; i++ {
+		go worker(pool.Tasks, pool.Results)
+		logger.Info("worker has been started", zap.Int("id", i))
+	}
+	return pool
 }

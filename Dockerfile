@@ -1,15 +1,13 @@
-FROM golang:alpine AS builder
+FROM golang:1.24-alpine3.21 AS builder
 
 WORKDIR /code
-
-ADD go.mod .
 
 COPY . .
 
 RUN go build -o orchestrator ./cmd/orchestrator
 RUN go build -o agent ./cmd/agent
 
-FROM alpine
+FROM alpine:3.21
 
 WORKDIR /app
 
